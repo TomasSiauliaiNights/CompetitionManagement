@@ -1,0 +1,1 @@
+var OVERLAY_DATA={"category":"","robot_number":"","robot_name":"","timer_text":"--:--.---","timer_state":"idle","best_time":"","best_label":"Best","status_text":"","points":[],"folkrace_group":""};

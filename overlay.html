@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Overlay</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:transparent;overflow:hidden;width:1920px;height:1080px;font-family:'Rajdhani',sans-serif}
+
+/* Fixed-height container at bottom */
+.w{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;min-width:580px}
+
+.badge{background:linear-gradient(135deg,#0a0a0a,#1a1a2e);border:2px solid #00f5d4;border-radius:5px;padding:3px 24px;font:700 15px 'Orbitron',monospace;color:#00f5d4;text-transform:uppercase;letter-spacing:4px}
+
+.card{background:linear-gradient(180deg,rgba(10,10,10,.96),rgba(15,15,35,.96));border:2px solid rgba(0,245,212,.35);border-radius:12px;padding:10px 40px 12px;min-width:660px;text-align:center;box-shadow:0 0 40px rgba(0,245,212,.1)}
+
+.rr{display:flex;justify-content:center;align-items:baseline;gap:12px;margin-bottom:2px}
+.rn{font:700 22px 'Orbitron',monospace;color:#ff6b6b}
+.rm{font-size:28px;font-weight:700;color:#fff}
+
+.timer{font:900 72px 'Orbitron',monospace;color:#00f5d4;text-shadow:0 0 25px rgba(0,245,212,.5);line-height:1.1;letter-spacing:3px;padding:2px 0}
+.timer.danger{color:#ff6b6b;text-shadow:0 0 25px rgba(255,107,107,.5);animation:pulse .5s ease-in-out infinite alternate}
+.timer.finished{color:#00f5d4;animation:glow 1.5s ease-in-out infinite alternate}
+.timer.dnf{color:#ff6b6b;font-size:60px}
+.timer.ready{color:#00f5d4;opacity:.7}
+@keyframes pulse{from{opacity:1}to{opacity:.55}}
+@keyframes glow{from{text-shadow:0 0 25px rgba(0,245,212,.5)}to{text-shadow:0 0 50px rgba(0,245,212,.9)}}
+
+.best{font-size:18px;color:rgba(255,255,255,.5);margin-top:1px}
+.best span{color:#ffd93d;font:700 18px 'Orbitron',monospace}
+.status{font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:3px;margin-top:2px;color:#00f5d4;min-height:20px}
+.grp{font:700 13px 'Orbitron',monospace;color:rgba(255,255,255,.4);margin-bottom:2px;letter-spacing:2px;text-transform:uppercase}
+
+/* Points card - compact */
+.pc{background:linear-gradient(180deg,rgba(10,10,10,.96),rgba(15,15,35,.96));border:2px solid rgba(0,245,212,.3);border-radius:10px;padding:10px 24px;min-width:400px}
+
+/* Big points display for fire sister */
+.big-pts{font:900 64px 'Orbitron',monospace;color:#ffd93d;text-shadow:0 0 20px rgba(255,217,61,.4);text-align:center;padding:4px 0}
+.big-pts-label{font:700 16px 'Rajdhani',sans-serif;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:3px;margin-bottom:2px}
+
+.pt{width:100%;border-collapse:collapse}
+.pt th{color:#00f5d4;font:700 12px 'Orbitron',monospace;text-transform:uppercase;letter-spacing:1px;padding:3px 8px;border-bottom:1px solid rgba(0,245,212,.2);text-align:left}
+.pt td{color:#fff;font-size:17px;padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.03)}
+.pt .pn{color:#ff6b6b;font:700 15px 'Orbitron',monospace}
+.pt .pp{font:700 17px 'Orbitron',monospace;color:#ffd93d;text-align:right}
+.hid{display:none!important}
+#dbg{position:fixed;top:2px;left:2px;color:rgba(50,50,50,.5);font:9px monospace}
+</style></head><body>
+<div id="dbg"></div>
+<div class="w">
+  <div class="badge" id="cat">—</div>
+  <div class="card">
+    <div class="grp hid" id="grp"></div>
+    <div class="rr"><div class="rn" id="rn"></div><div class="rm" id="rm"></div></div>
+    <div class="timer" id="tm">--:--.---</div>
+    <div class="best" id="bt"></div>
+    <div class="status" id="st"></div>
+  </div>
+  <!-- Points card (folkrace table OR fire sister big points) -->
+  <div class="pc hid" id="ppc">
+    <div id="bigPts" class="hid">
+      <div class="big-pts-label">POINTS</div>
+      <div class="big-pts" id="bigPtsVal">0</div>
+    </div>
+    <table class="pt hid" id="ptTable">
+      <thead><tr><th>#</th><th>Robot</th><th style="text-align:right">Points</th></tr></thead>
+      <tbody id="ppb"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+var dbg=document.getElementById('dbg'),pc=0;
+function esc(s){if(s===null||s===undefined)s='';var d=document.createElement('div');d.appendChild(document.createTextNode(String(s)));return d.innerHTML}
+function poll(){
+  pc++;
+  try{
+    var x=new XMLHttpRequest();
+    x.open('GET','overlay_data.js?t='+Date.now(),false);
+    x.send();
+    if(x.status===200||x.status===0){
+      var txt=x.responseText,i=txt.indexOf('{'),j=txt.lastIndexOf('}');
+      if(i>=0&&j>i){var d=JSON.parse(txt.substring(i,j+1));apply(d);dbg.textContent='ok'+pc}
+    }
+  }catch(e){dbg.textContent='E'+pc+':'+e.message}
+}
+function apply(d){
+  if(!d)return;
+  var cat=(d.category||'').toUpperCase();
+  document.getElementById('cat').textContent=cat||'—';
+  var g=document.getElementById('grp');
+  if(d.folkrace_group){g.textContent=d.folkrace_group;g.classList.remove('hid')}else g.classList.add('hid');
+  document.getElementById('rn').textContent=d.robot_number?'#'+d.robot_number:'';
+  document.getElementById('rm').textContent=d.robot_name||'';
+  var t=document.getElementById('tm');t.textContent=d.timer_text||'--:--.---';
+  t.className='timer';
+  if(d.timer_state&&d.timer_state!=='idle'&&d.timer_state!=='running')t.classList.add(d.timer_state);
+
+  var b=document.getElementById('bt');
+  if(d.best_time){b.innerHTML=esc(d.best_label||'Best')+': <span>'+esc(d.best_time)+'</span>';b.style.display=''}
+  else b.style.display='none';
+  document.getElementById('st').textContent=d.status_text||'';
+
+  var ppc=document.getElementById('ppc');
+  var bigP=document.getElementById('bigPts');
+  var ptT=document.getElementById('ptTable');
+  var ppb=document.getElementById('ppb');
+  var isFire=cat.indexOf('FIRE')>=0;
+  var isFolk=cat.indexOf('FOLK')>=0;
+
+  if(d.points&&d.points.length>0){
+    ppc.classList.remove('hid');
+    if(isFire&&d.points.length===1){
+      // Fire sister: show big points
+      bigP.classList.remove('hid');ptT.classList.add('hid');
+      document.getElementById('bigPtsVal').textContent=d.points[0].pts||'0';
+    }else if(isFolk){
+      // Folkrace: table with just # name points
+      bigP.classList.add('hid');ptT.classList.remove('hid');
+      var h='';
+      for(var i=0;i<d.points.length;i++){var p=d.points[i];
+        var pts=p.pts;if(pts===''||pts===null||pts===undefined)pts='0';
+        h+='<tr><td class="pn">'+esc(p.number||p.num||'')+'</td><td>'+esc(p.name||'')+'</td>';
+        h+='<td class="pp">'+esc(pts)+'</td></tr>';
+      }
+      ppb.innerHTML=h;
+    }else{
+      bigP.classList.add('hid');ptT.classList.remove('hid');
+      var h='';
+      for(var i=0;i<d.points.length;i++){var p=d.points[i];
+        h+='<tr><td class="pn">'+esc(p.number||p.num||'')+'</td><td>'+esc(p.name||'')+'</td><td class="pp">'+esc(p.pts||'0')+'</td></tr>';
+      }
+      ppb.innerHTML=h;
+    }
+  }else{
+    ppc.classList.add('hid');
+  }
+}
+setInterval(poll,150);
+setTimeout(poll,50);
+</script></body></html>
